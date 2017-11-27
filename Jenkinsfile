@@ -33,7 +33,8 @@ pipeline {
 		  label 'Apache'
 		}
 	    steps {
-		  sh "cp dist/rectangle_${env.BUILD_NUMBER}.jar /var/www/html/rectangles/all/"
+		  sh "mkdir /var/www/html/rectangles/all/${env.BRANCH_NAME}"
+		  sh "cp dist/rectangle_${env.BUILD_NUMBER}.jar /var/www/html/rectangles/all/${env.BRANCH_NAME}/"
 		}
 	  }
 	  stage ("Running on CentOS") {
@@ -41,7 +42,7 @@ pipeline {
 		  label 'CentOS'
 		}
 		steps {
-		  sh "wget http://pradeepkumarthatavarthi2.mylabserver.com/rectangles/all/rectangle_${env.BUILD_NUMBER}.jar"
+		  sh "wget http://pradeepkumarthatavarthi2.mylabserver.com/rectangles/all/${env.BRANCH_NAME}/rectangle_${env.BUILD_NUMBER}.jar"
 		  sh "java -jar rectangle_${env.BUILD_NUMBER}.jar 3 4"
 		}
 	  }
@@ -50,7 +51,7 @@ pipeline {
 		  docker 'openjdk:8u151-jre'
 		}
 		steps {
-		  sh "wget http://pradeepkumarthatavarthi2.mylabserver.com/rectangles/all/rectangle_${env.BUILD_NUMBER}.jar"
+		  sh "wget http://pradeepkumarthatavarthi2.mylabserver.com/rectangles/all/${env.BRANCH_NAME}/rectangle_${env.BUILD_NUMBER}.jar"
 		  sh "java -jar rectangle_${env.BUILD_NUMBER}.jar 3 4"
 		}
 	  }
@@ -59,10 +60,30 @@ pipeline {
 		  label 'Apache'
 		}
 		when {
-		  branch 'development'
+		  branch 'master'
 		}
 	    steps {
 		  sh "cp /var/www/html/rectangles/all/rectangle_${env.BUILD_NUMBER}.jar /var/www/html/rectangles/green/rectangle_${env.BUILD_NUMBER}.jar"
+		}
+	  }
+	  stage ('Promote development branch to master') {
+	    agent {
+		  label 'Apache'
+		}
+		when {
+		  branch 'development'
+		}
+		steps {
+		  echo 'Stashing any local changes'
+		  sh 'git stash'
+		  echo 'Checking out development branch'
+		  sh 'git checkout development'
+		  echo 'Checking out master branch'
+		  sh 'git checkout master'
+		  echo 'Merging development into master branch'
+		  sh 'git merge development'
+		  echo ' Pushing to orgin master'
+		  sh 'git push origin master'
 		}
 	  }
    }
